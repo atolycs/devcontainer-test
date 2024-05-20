@@ -7,9 +7,6 @@ jobs:
         name: Deploy
         if: ${{ github.ref == 'refs/heads/main' }}
         runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            packages: write
         steps:
             - name: checkout
               uses: actions/checkout@v4
@@ -24,12 +21,11 @@ jobs:
             - name: Publish Templates
               uses: devcontainers/action@v1
               with:
-                publish-templates: "true" 
+                publish-templates: "true"
                 base-path-to-templates: "./src"
                 generate-docs: "true"
               env:
-                #GITHUB_TOKEN: ${{ steps.gh-app.outputs.token }}
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                GITHUB_TOKEN: ${{ steps.gh-app.outputs.token }}
             
             - name: Create PR for Documentation
               id: push_image_info
