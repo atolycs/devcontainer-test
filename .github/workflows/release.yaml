@@ -1,0 +1,53 @@
+name: "Release dev container Image"
+on:
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        name: Deploy
+        if: ${{ github.ref == 'refs/heads/main' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - name: Github Apps Generate Token
+              id: gh-app
+              uses: atolycs/create-app-auth@v1
+              with:
+                app-id: ${{ secrets.APP_ID }}
+                private-key: ${{ secrets.APP_PEM }}
+
+            - name: Publish Templates
+              uses: devcontainers/action@v1
+              with:
+                publish-templates: "true" 
+                base-path-to-templates: "./src"
+                generate-docs: "true"
+              env:
+                GITHUB_TOKEN: ${{ steps.gh-app.outputs.token }}
+            
+            - name: Create PR for Documentation
+              id: push_image_info
+              env:
+                GITHUB_TOKEN: ${{ steps.gh-app.outputs.token }}
+              run: |
+                set -e
+
+                echo "Start."
+                git config --global user.email ${{ steps.gh-app.outputs.commit-email }}
+                git config --global user.name ${{ steps.gh-app.outputs.commit-user }}
+                git config pull.rebase false
+
+                branch=automated-documantation-update-${GITHUB_RUN_ID}
+                git checkout -b $branch
+                message='Automated documentation update'
+
+                git add */**/README.md
+                git commit -m 'Automated documentation update [skip ci]' || export NO_UPDATES=true
+
+                
+                if [ "$NO_UPDATES" != "true" ];then
+                    git push origin "$branch"
+                    gh pr create --title "$message" --body "$message"
+                fi
